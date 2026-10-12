@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, Test & Validate Container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NUGET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore dependencies
+        run: dotnet restore FinSightIQ.Gateway.sln
+
+      - name: Build solution
+        run: dotnet build FinSightIQ.Gateway.sln --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test FinSightIQ.Gateway.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Validate Docker build with BuildKit secret
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" > /tmp/nuget_token.txt
+          docker build \
+            --secret id=nuget_token,src=/tmp/nuget_token.txt \
+            -f Dockerfile \
+            .
+          rm -f /tmp/nuget_token.txt
