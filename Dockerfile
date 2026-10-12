@@ -9,6 +9,7 @@ WORKDIR /src
 # Copy solution and project definitions first for optimal layer caching
 COPY ["global.json", "./"]
 COPY ["nuget.config", "./"]
+COPY ["packages/", "./packages/"]
 COPY ["src/FinSightIQ.Gateway/FinSightIQ.Gateway.csproj", "src/FinSightIQ.Gateway/"]
 
 # Restore packages with optional BuildKit secret for GitHub Packages access
@@ -28,6 +29,8 @@ RUN dotnet publish "FinSightIQ.Gateway.csproj" -c Release --no-build -o /app/pub
 # Stage 2: Production Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 # Run as built-in non-root app user
 USER $APP_UID

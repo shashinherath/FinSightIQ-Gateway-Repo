@@ -6,12 +6,15 @@
 .idea/
 
 # Build artifacts and caches
+**/bin/
+**/obj/
 bin/
 obj/
 artifacts/
 TestResults/
 *.nupkg
 *.snupkg
+!packages/*.nupkg
 
 # Tests (not needed in runtime image)
 tests/
