@@ -82,4 +82,25 @@ public class RoutingTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal("/api/v1/predictions", recordedRequest.RequestUri.AbsolutePath);
         Assert.Equal(payload, recordedRequest.Body);
     }
+
+    [Fact]
+    public async Task SentimentRoute_ForwardsToSentimentService_WhenAuthenticated()
+    {
+        // Arrange
+        var token = _factory.JwtGenerator.GenerateToken(role: "Viewer");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var endpoint = "/api/v1/sentiment/AAPL?period=30d";
+
+        // Act
+        var response = await _client.GetAsync(endpoint);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        Assert.True(_factory.DownstreamHandler.Requests.TryDequeue(out var recordedRequest));
+        Assert.Equal("GET", recordedRequest.Method);
+        Assert.Equal("/api/v1/sentiment/AAPL", recordedRequest.RequestUri.AbsolutePath);
+        Assert.Equal("?period=30d", recordedRequest.RequestUri.Query);
+    }
 }
